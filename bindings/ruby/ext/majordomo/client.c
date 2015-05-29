@@ -21,11 +21,11 @@ static void rb_mark_majordomo_client(void *ptr)
  *  Release the GIL when closing a Majordomo client
  *
 */
-static VALUE rb_nogvl_mdp_client_close(void *ptr)
+static void *rb_nogvl_mdp_client_close(void *ptr)
 {
     mdp_client_t *client = ptr;
     mdp_client_destroy(&client);
-    return Qnil;
+    return (void *)Qnil;
 }
 
 /*
@@ -37,10 +37,7 @@ static void rb_free_majordomo_client(void *ptr)
 {
     rb_majordomo_client_t *client = (rb_majordomo_client_t *)ptr;
     if (client) {
-        if (client->client) rb_thread_blocking_region(rb_nogvl_mdp_client_close, (void *)client->client, RUBY_UBF_IO, 0);
-#ifndef HAVE_RB_THREAD_BLOCKING_REGION
-        zlist_destroy(&(client->recv_buffer));
-#endif
+        if (client->client) rb_thread_call_without_gvl(rb_nogvl_mdp_client_close, (void *)client->client, RUBY_UBF_IO, NULL);
         xfree(client);
         client = NULL;
     }
@@ -51,10 +48,10 @@ static void rb_free_majordomo_client(void *ptr)
  *  Release the GIL when creating a new Majordomo client
  *
 */
-static VALUE rb_nogvl_mdp_client_new(void *ptr)
+static void *rb_nogvl_mdp_client_new(void *ptr)
 {
     struct nogvl_md_client_new_args *args = ptr;
-    return (VALUE)mdp_client_new(args->broker, args->verbose);
+    return (void *)mdp_client_new(args->broker, args->verbose);
 }
 
 /*
@@ -84,12 +81,9 @@ static VALUE rb_majordomo_client_s_new(int argc, VALUE *argv, VALUE klass)
     obj = Data_Make_Struct(klass, rb_majordomo_client_t, rb_mark_majordomo_client, rb_free_majordomo_client, client);
     args.broker = RSTRING_PTR(broker);
     args.verbose = (verbose == Qtrue ? 1 : 0);
-    client->client = (mdp_client_t *)rb_thread_blocking_region(rb_nogvl_mdp_client_new, (void *)&args, RUBY_UBF_IO, 0);
+    client->client = (mdp_client_t *)rb_thread_call_without_gvl(rb_nogvl_mdp_client_new, (void *)&args, RUBY_UBF_IO, NULL);
     client->broker = rb_str_new4(broker);
     client->timeout = INT2NUM(MAJORDOMO_CLIENT_TIMEOUT);
-#ifndef HAVE_RB_THREAD_BLOCKING_REGION
-    client->recv_buffer = zlist_new();
-#endif
     rb_obj_call_init(obj, 0, NULL);
     return obj;
 }
@@ -151,31 +145,11 @@ static VALUE rb_majordomo_client_timeout_equals(VALUE obj, VALUE timeout){
  *  Release the GIL when sending a client message
  *
 */
-static VALUE rb_nogvl_mdp_client_send(void *ptr)
+static void *rb_nogvl_mdp_client_send(void *ptr)
 {
     struct nogvl_md_client_send_args *args = ptr;
-#ifdef HAVE_RB_THREAD_BLOCKING_REGION
     mdp_client_send(args->client, args->service, &args->request);
-#else
-    uint32_t events;
-    size_t evopt_len = sizeof (uint32_t);
-    int fd;
-    size_t fdopt_len = sizeof (int);
-    if (rb_thread_alone()) {
-        mdp_client_send(args->client, args->service, &args->request);
-        return Qnil;
-    }
-try_writable:
-    mdp_client_getsockopt (args->client, ZMQ_EVENTS, &events, &evopt_len);
-    if ((events & ZMQ_POLLOUT) == ZMQ_POLLOUT) {
-        mdp_client_send(args->client, args->service, &args->request);
-    } else {
-        mdp_client_getsockopt (args->client, ZMQ_FD, &fd, &fdopt_len);
-        rb_thread_wait_fd(fd);
-        goto try_writable;
-    }
-#endif
-    return Qnil;
+    return (void *)Qnil;
 }
 
 /*
@@ -203,7 +177,7 @@ static VALUE rb_majordomo_client_send(VALUE obj, VALUE service, VALUE message){
         zmsg_destroy(&args.request);
         return Qfalse;
     }
-    rb_thread_blocking_region(rb_nogvl_mdp_client_send, (void *)&args, RUBY_UBF_IO, 0);
+    rb_thread_call_without_gvl(rb_nogvl_mdp_client_send, (void *)&args, RUBY_UBF_IO, NULL);
     return Qtrue;
 }
 
@@ -212,32 +186,11 @@ static VALUE rb_majordomo_client_send(VALUE obj, VALUE service, VALUE message){
  *  Release the GIL when receiving a client message
  *
 */
-static VALUE rb_nogvl_mdp_client_recv(void *ptr)
+static void *rb_nogvl_mdp_client_recv(void *ptr)
 {
     struct nogvl_md_client_recv_args *args = ptr;
     rb_majordomo_client_t *client = args->client;
-#ifdef HAVE_RB_THREAD_BLOCKING_REGION
-    return (VALUE)mdp_client_recv(client->client, args->service);
-#else
-    uint32_t events;
-    size_t evopt_len = sizeof (uint32_t);
-    int fd;
-    size_t fdopt_len = sizeof (int);
-    if (zlist_size(client->recv_buffer) != 0)
-       return (VALUE)zlist_pop(client->recv_buffer);
-try_readable:
-    mdp_client_getsockopt (client->client, ZMQ_EVENTS, &events, &evopt_len);
-    if ((events & ZMQ_POLLIN) == ZMQ_POLLIN) {
-        do {
-            zlist_append(client->recv_buffer, mdp_client_recv(client->client, args->service));
-        } while (zmq_errno() != EAGAIN && zmq_errno() != EINTR);
-        return (VALUE)zlist_pop(client->recv_buffer);
-     } else {
-        mdp_client_getsockopt (client->client, ZMQ_FD, &fd, &fdopt_len);
-        rb_thread_wait_fd(fd);
-        goto try_readable;
-     }
-#endif
+    return (void *)mdp_client_recv(client->client, NULL, args->service); // FIXME
 }
 
 /*
@@ -261,7 +214,7 @@ static VALUE rb_majordomo_client_recv(VALUE obj, VALUE service){
     Check_Type(service, T_STRING);
     args.client = client;
     args.service = RSTRING_PTR(service);
-    reply = (zmsg_t *)rb_thread_blocking_region(rb_nogvl_mdp_client_recv, (void *)&args, RUBY_UBF_IO, 0);
+    reply = (zmsg_t *)rb_thread_call_without_gvl(rb_nogvl_mdp_client_recv, (void *)&args, RUBY_UBF_IO, NULL);
     if (!reply)
         return Qnil;
     rep = MajordomoEncode(rb_str_new2(zmsg_popstr(reply)));
@@ -283,7 +236,7 @@ static VALUE rb_majordomo_client_recv(VALUE obj, VALUE service){
 static VALUE rb_majordomo_client_close(VALUE obj){
     VALUE ret;
     GetMajordomoClient(obj);
-    ret = rb_thread_blocking_region(rb_nogvl_mdp_client_close, (void *)client->client, RUBY_UBF_IO, 0);
+    ret = (VALUE) rb_thread_call_without_gvl(rb_nogvl_mdp_client_close, (void *)client->client, RUBY_UBF_IO, NULL);
     client->client = NULL;
     return ret;
 }

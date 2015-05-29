@@ -17,9 +17,12 @@ fail("zmq not found") unless have_library('zmq')
 fail("czmq not found") unless have_library('czmq')
 fail("libdmp not found") unless have_library('mdp')
 
-have_func('rb_thread_blocking_region')
+have_header('ruby/io.h')
+have_header('ruby/thread.h')
+have_func('rb_thread_call_without_gvl') or abort "no rb_thread_call_without_gvl()"
 
-$CFLAGS << ' -Wall -funroll-loops'
-$CFLAGS << ' -Wextra -O0 -ggdb3' if ENV['DEBUG']
+$CFLAGS += ' -Wall -funroll-loops'
+$CFLAGS += ' -std=gnu99'
+$CFLAGS += ' -Wextra -O0 -ggdb3' if ENV['DEBUG']
 
 create_makefile('majordomo_ext')

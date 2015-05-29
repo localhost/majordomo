@@ -5,9 +5,6 @@ typedef struct {
     mdp_client_t *client;
     VALUE broker;
     VALUE timeout;
-#ifndef HAVE_RB_THREAD_BLOCKING_REGION
-    zlist_t *recv_buffer;
-#endif
 } rb_majordomo_client_t;
 
 #define MAJORDOMO_CLIENT_TIMEOUT 2500

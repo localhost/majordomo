@@ -6,18 +6,14 @@
 #define RFLOAT_VALUE(v) (RFLOAT(v)->value)
 #endif
 
-#ifdef RUBINIUS
-#include "rubinius.h"
-#else
-#ifdef JRUBY
-#include "jruby.h"
-#else
-#ifdef HAVE_RB_THREAD_BLOCKING_REGION
-#include "ruby19.h"
-#else
-#include "ruby18.h"
+#include <ruby/encoding.h>
+#include <ruby/io.h>
+
+#ifdef HAVE_RUBY_THREAD_H
+#include <ruby/thread.h>
 #endif
-#endif
-#endif
+
+extern rb_encoding *binary_encoding;
+#define MajordomoEncode(str) rb_enc_associate(str, binary_encoding)
 
 #endif

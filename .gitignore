@@ -1,0 +1,4 @@
+bindings/ruby/ext/majordomo/Makefile
+*.so
+bindings/ruby/pkg/
+bindings/ruby/tmp/
