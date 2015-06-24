@@ -2,17 +2,7 @@ if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
   set(CMAKE_C_FLAGS "--std=gnu99 ${CMAKE_C_FLAGS}")
 endif()
 
-include_directories(${ZeroMQ_INCLUDE_DIRS} ${CZMQ_INCLUDE_DIRS} ../include)
-
-set(mdp_headers
-  mdp.h
-  mdp_common.h
-  mdp_client.h
-  mdp_worker.h
-)
-
-source_group("Header Files" FILES ${mdp_headers})
-install(FILES ${mdp_headers} DESTINATION include)
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
 set(mdp_sources
   mdp_broker.c
@@ -38,6 +28,7 @@ install(TARGETS mdp
 
 add_executable(mdp_broker mdp_broker.c)
 target_link_libraries(mdp_broker mdp)
+install(TARGETS mdp_broker DESTINATION bin)
 
 add_executable(test_client test_client.c)
 target_link_libraries(test_client mdp)

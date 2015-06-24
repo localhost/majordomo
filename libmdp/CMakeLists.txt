@@ -43,4 +43,5 @@ install(
   DESTINATION "lib${LIB_SUFFIX}/pkgconfig"
 )
 
+add_subdirectory(include)
 add_subdirectory(src)
