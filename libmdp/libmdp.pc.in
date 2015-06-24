@@ -1,0 +1,13 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libmdp
+Description: A service oriented ZeroMQ broker that implements the Majordomo protocol
+Version: @VERSION@
+
+Requires: libzmq, libczmq
+
+Libs: -L${libdir} -lmdp
+Cflags: -I${includedir}

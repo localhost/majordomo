@@ -47,3 +47,4 @@ src/test_client
 src/test_worker
 src/engine
 src/trader
+build/

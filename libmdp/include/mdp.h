@@ -26,6 +26,15 @@
 #ifndef __MDP_H_INCLUDED__
 #define __MDP_H_INCLUDED__
 
+#define MDP_VERSION_MAJOR 1
+#define MDP_VERSION_MINOR 0
+#define MDP_VERSION_PATCH 0
+
+#define MDP_MAKE_VERSION(major, minor, patch) \
+    ((major) * 10000 + (minor) * 100 + (patch))
+#define MDP_VERSION \
+    MDP_MAKE_VERSION(MDP_VERSION_MAJOR, MDP_VERSION_MINOR, MDP_VERSION_PATCH)
+
 //  Set up environment for the application
 //
 #include "czmq.h"
