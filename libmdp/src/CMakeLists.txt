@@ -1,3 +1,7 @@
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+  set(CMAKE_C_FLAGS "--std=gnu99 ${CMAKE_C_FLAGS}")
+endif()
+
 include_directories(${ZeroMQ_INCLUDE_DIRS} ${CZMQ_INCLUDE_DIRS} ../include)
 
 set(mdp_headers
@@ -7,7 +11,7 @@ set(mdp_headers
   mdp_worker.h
 )
 
-source_group ("Header Files" FILES ${mdp_headers})
+source_group("Header Files" FILES ${mdp_headers})
 install(FILES ${mdp_headers} DESTINATION include)
 
 set(mdp_sources
@@ -16,7 +20,7 @@ set(mdp_sources
   mdp_worker.c
 )
 
-source_group ("Source Files" FILES ${mdp_sources})
+source_group("Source Files" FILES ${mdp_sources})
 
 if(NOT DEFINED BUILD_SHARED_LIBS)
   set(BUILD_SHARED_LIBS ON)
