@@ -47,7 +47,7 @@ CZMQ_EXPORT int
     mdp_client_getsockopt (mdp_client_t *self, int option, void *optval,
     size_t *optvallen);
 CZMQ_EXPORT void
-    mdp_client_send (mdp_client_t *self, char *service, zmsg_t **request_p);
+    mdp_client_send (mdp_client_t *self, const char *service, zmsg_t **request_p);
 CZMQ_EXPORT zmsg_t *
     mdp_client_recv (mdp_client_t *self, char **command_p, char **service_p);
 //  @end

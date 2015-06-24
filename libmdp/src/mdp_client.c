@@ -127,7 +127,7 @@ mdp_client_getsockopt (mdp_client_t *self, 	int option, void *optval, size_t *op
 //  It takes ownership of the request message, and destroys it when sent.
 
 void
-mdp_client_send (mdp_client_t *self, char *service, zmsg_t **request_p)
+mdp_client_send (mdp_client_t *self, const char *service, zmsg_t **request_p)
 {
     assert (self);
     assert (request_p);
