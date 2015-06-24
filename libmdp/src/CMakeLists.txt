@@ -2,7 +2,7 @@ if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
   set(CMAKE_C_FLAGS "--std=gnu99 ${CMAKE_C_FLAGS}")
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${ZeroMQ_INCLUDE_DIRS} ${CZMQ_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/include)
 
 set(mdp_sources
   mdp_broker.c
